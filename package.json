@@ -1,0 +1,16 @@
+{
+  "name": "lab-module-federation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lab de Micro Frontends com Module Federation, React 18 e TypeScript",
+  "scripts": {
+    "install:all": "npm --prefix host install && npm --prefix remote install",
+    "dev:host": "npm --prefix host run dev",
+    "dev:remote": "npm --prefix remote run dev",
+    "build:remote": "npm --prefix remote run build",
+    "preview:remote": "npm --prefix remote run preview",
+    "build:host": "npm --prefix host run build",
+    "preview:host": "npm --prefix host run preview",
+    "build:all": "npm run build:remote && npm run build:host"
+  }
+}
