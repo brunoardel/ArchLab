@@ -13,7 +13,7 @@
   - Registrar a quebra de hooks no console.
   - Corrigir adicionando `singleton: true` e `requiredVersion` para React e ReactDOM.
 
-- [ ] **Tarefa 4: Resiliência com ErrorBoundary e Suspense**
+- [x] **Tarefa 4: Resiliência com ErrorBoundary e Suspense**
   - Importar o `GeoViewer` no Host usando `React.lazy`.
   - Criar um componente `ErrorBoundary` reutilizável.
   - Envolver o componente remoto com `ErrorBoundary` e `Suspense`.
