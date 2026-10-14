@@ -1,6 +1,8 @@
 import { lazy, Suspense, useState, useMemo } from 'react';
-import { Routes, Route, NavLink, Link } from 'react-router-dom';
+import { Routes, Route, NavLink, Link, useSearchParams } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
+import type { TerrenoRecalculadoDetail, TerrenoAlteradoDetail } from './types/events';
+import './App.css';
 
 function OverviewPage() {
   return (
@@ -8,7 +10,7 @@ function OverviewPage() {
       <div className="page-header">
         <h1 className="page-title">Container Principal (Host Shell)</h1>
         <p className="page-desc">
-          Plataforma de Micro Frontends com Module Federation orquestrando módulos autônomos e resilientes.
+          Plataforma de Micro Frontends com Module Federation orquestrando módulos autônomos, resilientes e desacoplados.
         </p>
       </div>
 
@@ -19,7 +21,7 @@ function OverviewPage() {
             <span className="badge badge-host">Porta 3000</span>
           </div>
           <div className="card-body">
-            Gerencia a aplicação principal, o layout base, o roteamento da aplicação e orquestra a injeção sob demanda dos micro frontends remotos.
+            Gerencia a aplicação principal, layout base, roteamento com <span className="tag-code">react-router-dom</span> e orquestra a injeção sob demanda dos micro frontends remotos.
           </div>
         </div>
 
@@ -46,7 +48,7 @@ function OverviewPage() {
         <div className="card">
           <div className="card-title">
             <span>Resiliência & Tolerância a Falhas</span>
-            <span className="badge badge-warning" style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fb7185', border: '1px solid rgba(244, 63, 94, 0.35)' }}>
+            <span className="badge badge-warning badge-status-rose">
               ErrorBoundary + Suspense
             </span>
           </div>
@@ -54,22 +56,40 @@ function OverviewPage() {
             Isolamento de falhas: se o Remote em <span className="tag-code">localhost:3001</span> for desligado ou falhar na rede, o Host Shell não sofre crash (White Screen of Death), exibindo um fallback elegante com recuperação.
           </div>
         </div>
+
+        <div className="card">
+          <div className="card-title">
+            <span>Comunicação Desacoplada</span>
+            <span className="badge badge-warning badge-status-amber">
+              URL State + CustomEvent
+            </span>
+          </div>
+          <div className="card-body">
+            Comunicação sem acoplamento de estados globais: estado na URL (<span className="tag-code">?terrenoId=ID</span>) como fonte da verdade e eventos nativos do navegador (<span className="tag-code">CustomEvent</span>) para disparos laterais.
+          </div>
+        </div>
       </div>
 
-      <div className="card" style={{ marginTop: '24px', background: 'rgba(15, 23, 42, 0.7)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="card overview-banner-card">
+        <div className="banner-card-content">
           <div>
-            <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+            <h3 className="banner-card-title">
               🗺️ Módulo de Visualização de Terreno (GeoViewer)
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '14px', maxWidth: '650px' }}>
-              O micro frontend de topografia reside na rota dedicada <span className="tag-code">/terreno</span>, protegido por <span className="tag-code">ErrorBoundary</span> e <span className="tag-code">Suspense</span>. Experimente desligar o Remote ou simular erros para verificar a resiliência em tempo real.
+            <p className="banner-card-desc">
+              O micro frontend de topografia reside na rota dedicada <span className="tag-code">/terreno</span>, protegido por <span className="tag-code">ErrorBoundary</span> e <span className="tag-code">Suspense</span>, com sincronização por URL e CustomEvent nativos.
             </p>
           </div>
-          <Link to="/terreno" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-            <span>Acessar Visualizador de Terreno</span>
-            <span>→</span>
-          </Link>
+          <div className="banner-card-actions">
+            <Link to="/terreno?terrenoId=101" className="btn btn-primary">
+              <span>Terreno Alpha (101)</span>
+              <span>→</span>
+            </Link>
+            <Link to="/terreno?terrenoId=202" className="btn btn-secondary">
+              <span>Terreno Beta (202)</span>
+              <span>→</span>
+            </Link>
+          </div>
         </div>
       </div>
     </>
@@ -79,11 +99,11 @@ function OverviewPage() {
 function TerrainLoadingFallback() {
   return (
     <div className="mfe-container">
-      <div className="geo-loader-ring" style={{ width: '40px', height: '40px' }}></div>
-      <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '12px' }}>
+      <div className="geo-loader-ring loading-ring-sm"></div>
+      <p className="loading-text">
         🛰️ Carregando módulo remoto GeoViewer via Module Federation (localhost:3001)...
       </p>
-      <span style={{ color: '#64748b', fontSize: '12px', fontFamily: 'var(--font-mono)' }}>
+      <span className="loading-subtext">
         Suspense: aguardando resolução do chunk remoto
       </span>
     </div>
@@ -91,6 +111,11 @@ function TerrainLoadingFallback() {
 }
 
 function TerrainPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTerrenoId = searchParams.get('terrenoId') || '101';
+  const [lastRecalcVersion, setLastRecalcVersion] = useState<string | null>(null);
+  const [lastRecalcTimestamp, setLastRecalcTimestamp] = useState<number | null>(null);
+
   const [retryKey, setRetryKey] = useState<number>(0);
   const [simulateFailure, setSimulateFailure] = useState<boolean>(false);
 
@@ -120,18 +145,42 @@ function TerrainPage() {
     setRetryKey((prev) => prev + 1);
   };
 
+  /**
+   * Padrão 1: Estado na URL (Query Params).
+   * Altera ?terrenoId=ID na barra de endereços sem recarregar a página e emite evento desacoplado.
+   */
+  const handleSelectTerreno = (terrenoId: string) => {
+    setSearchParams({ terrenoId });
+
+    // Emite CustomEvent nativo para notificar o micro frontend remoto em tempo real
+    const detail: TerrenoAlteradoDetail = { terrenoId };
+    window.dispatchEvent(
+      new CustomEvent<TerrenoAlteradoDetail>('terreno:alterado', { detail })
+    );
+  };
+
+  /**
+   * Padrão 2: Eventos Nativos do Navegador (CustomEvent).
+   * Dispara o evento 'terreno:recalculado' com timestamp e versão gerada dinamicamente.
+   */
+  const handleDispararRecalculo = () => {
+    const timestamp = Date.now();
+    const versao = Math.random().toFixed(2);
+    const detail: TerrenoRecalculadoDetail = {
+      timestamp,
+      versao,
+    };
+    setLastRecalcVersion(versao);
+    setLastRecalcTimestamp(timestamp);
+
+    window.dispatchEvent(
+      new CustomEvent<TerrenoRecalculadoDetail>('terreno:recalculado', { detail })
+    );
+  };
+
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
+      <div className="page-header page-header-flex">
         <div>
           <h1 className="page-title">Visualizador de Terreno</h1>
           <p className="page-desc">
@@ -139,60 +188,124 @@ function TerrainPage() {
             <span className="tag-code">http://localhost:3001/assets/remoteEntry.js</span>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="badge-group">
           <span className="badge badge-remote">Rota: /terreno</span>
           <span className="badge badge-host">Lazy Loaded</span>
-          <span
-            className="badge"
-            style={{
-              background: 'rgba(244, 63, 94, 0.15)',
-              color: '#fb7185',
-              border: '1px solid rgba(244, 63, 94, 0.35)',
-            }}
-          >
+          <span className="badge badge-status-amber">
+            📡 Comunicação Desacoplada
+          </span>
+          <span className="badge badge-status-rose">
             🛡️ ErrorBoundary Protegido
           </span>
         </div>
       </div>
 
-      {/* Barra Didática de Demonstração de Resiliência */}
-      <div
-        style={{
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '10px',
-          padding: '12px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '16px' }}>🧪</span>
+      {/* Barra Superior de Controle: Comunicação Desacoplada (Tarefa 5 — PRD) */}
+      <div className="control-panel">
+        <div className="control-panel-header">
+          <div className="control-panel-title-area">
+            <span className="control-panel-icon">📡</span>
+            <div>
+              <div className="control-panel-title">
+                Painel de Comunicação Desacoplada (Cenário C — PRD)
+              </div>
+              <div className="control-panel-desc">
+                Sincronização via Estado na URL (<span className="tag-code">?terrenoId=ID</span>) e Eventos Nativos (<span className="tag-code">CustomEvent</span>)
+              </div>
+            </div>
+          </div>
+
+          <div className="control-panel-url-info">
+            <span className="control-panel-url-label">URL Query Param:</span>
+            <span className="url-query-tag">
+              ?terrenoId={activeTerrenoId}
+            </span>
+          </div>
+        </div>
+
+        <div className="control-panel-body">
+          {/* 1. Seletor de Terreno (URL State) */}
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
+            <div className="control-section-label">
+              1. Seletor de Terreno (Estado na URL):
+            </div>
+            <div className="terrain-btn-group">
+              <button
+                type="button"
+                className={`btn terrain-btn ${activeTerrenoId === '101' ? 'terrain-btn-active' : ''}`}
+                onClick={() => handleSelectTerreno('101')}
+                id="btn-terreno-101"
+              >
+                <span>⛰️</span>
+                <span>Terreno Alpha (ID: 101)</span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn terrain-btn ${activeTerrenoId === '202' ? 'terrain-btn-active' : ''}`}
+                onClick={() => handleSelectTerreno('202')}
+                id="btn-terreno-202"
+              >
+                <span>🏞️</span>
+                <span>Terreno Beta (ID: 202)</span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn terrain-btn ${activeTerrenoId === '303' ? 'terrain-btn-active' : ''}`}
+                onClick={() => handleSelectTerreno('303')}
+                id="btn-terreno-303"
+              >
+                <span>🌲</span>
+                <span>Terreno Gamma (ID: 303)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Botão de Disparo de Ação (CustomEvent) */}
+          <div>
+            <div className="control-section-label">
+              2. Disparo de Ação (CustomEvent):
+            </div>
+            <div className="recalc-action-group">
+              <button
+                type="button"
+                className="btn btn-recalc"
+                onClick={handleDispararRecalculo}
+                id="btn-disparar-recalculo"
+              >
+                <span>⚡</span>
+                <span>Disparar Recálculo de Parâmetros</span>
+              </button>
+
+              {lastRecalcVersion && (
+                <span className="recalc-status-badge">
+                  Emitido: v{lastRecalcVersion} às {new Date(lastRecalcTimestamp || 0).toLocaleTimeString('pt-BR')}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Barra Didática de Demonstração de Resiliência */}
+      <div className="resilience-panel">
+        <div className="resilience-panel-info">
+          <span className="resilience-panel-icon">🧪</span>
+          <div>
+            <div className="resilience-panel-title">
               Painel Didático de Resiliência (Cenário B — PRD)
             </div>
-            <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+            <div className="resilience-panel-desc">
               Teste como o Host reage quando o Remote está desligado ou inacessível.
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="resilience-panel-actions">
           <button
             type="button"
-            className="btn"
-            style={{
-              background: simulateFailure ? '#10b981' : 'rgba(244, 63, 94, 0.2)',
-              color: simulateFailure ? '#ffffff' : '#fb7185',
-              border: `1px solid ${simulateFailure ? '#10b981' : 'rgba(244, 63, 94, 0.4)'}`,
-              padding: '6px 14px',
-              fontSize: '12px',
-            }}
+            className={`btn ${simulateFailure ? 'btn-simulate-active' : 'btn-simulate-idle'}`}
             onClick={() => {
               setSimulateFailure((prev) => !prev);
               setRetryKey((k) => k + 1);
@@ -204,14 +317,7 @@ function TerrainPage() {
 
           <button
             type="button"
-            className="btn"
-            style={{
-              background: 'rgba(30, 41, 59, 0.8)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              padding: '6px 14px',
-              fontSize: '12px',
-            }}
+            className="btn btn-reload-module"
             onClick={() => setRetryKey((k) => k + 1)}
             title="Força uma nova tentativa de importação do componente"
           >
@@ -259,26 +365,16 @@ export default function App() {
             <span className="badge-dot"></span>
             Remote: localhost:3001
           </div>
-          <div
-            className="badge"
-            style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#10b981',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-            }}
-          >
-            <span className="badge-dot" style={{ background: '#10b981' }}></span>
+          <div className="badge badge-status-emerald">
+            <span className="badge-dot badge-dot-emerald"></span>
             Singleton: Ativo
           </div>
-          <div
-            className="badge"
-            style={{
-              background: 'rgba(244, 63, 94, 0.15)',
-              color: '#fb7185',
-              border: '1px solid rgba(244, 63, 94, 0.4)',
-            }}
-          >
-            <span className="badge-dot" style={{ background: '#fb7185' }}></span>
+          <div className="badge badge-status-amber">
+            <span className="badge-dot badge-dot-amber"></span>
+            Comunicação: Desacoplada
+          </div>
+          <div className="badge badge-status-rose">
+            <span className="badge-dot badge-dot-rose"></span>
             Resiliência: Ativa
           </div>
         </div>
@@ -289,12 +385,11 @@ export default function App() {
         <aside className="app-sidebar">
           <div>
             <div className="nav-section-title">Navegação</div>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <nav className="sidebar-nav-list">
               <NavLink
                 to="/"
                 end
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                style={{ textDecoration: 'none' }}
               >
                 <span>📊</span>
                 <span>Visão Geral</span>
@@ -303,7 +398,6 @@ export default function App() {
               <NavLink
                 to="/terreno"
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                style={{ textDecoration: 'none' }}
               >
                 <span>🗺️</span>
                 <span>Visualizador de Terreno</span>
@@ -313,19 +407,23 @@ export default function App() {
 
           <div className="sidebar-status-box">
             <div className="status-label">STATUS DA FEDERAÇÃO</div>
-            <div className="status-value" style={{ color: '#10b981', marginBottom: '8px' }}>
+            <div className="status-value status-value-success">
               ● Módulos Conectados
             </div>
             <div className="status-label">CONFIGURAÇÃO SHARED</div>
-            <div className="status-value" style={{ fontSize: '11px', color: '#38bdf8', marginBottom: '8px' }}>
+            <div className="status-value status-value-cyan">
               React 18.3.1 (singleton: true)
             </div>
+            <div className="status-label">COMUNICAÇÃO ENTRE MFEs</div>
+            <div className="status-value status-value-amber">
+              📡 URL State + CustomEvent
+            </div>
             <div className="status-label">PROTEÇÃO DE RUNTIME</div>
-            <div className="status-value" style={{ fontSize: '11px', color: '#fb7185', marginBottom: '8px' }}>
+            <div className="status-value status-value-rose">
               🛡️ ErrorBoundary + Suspense
             </div>
-            <div className="status-label" style={{ marginTop: '8px' }}>REMOTE MANIFEST</div>
-            <div className="status-value" style={{ fontSize: '11px', wordBreak: 'break-all' }}>
+            <div className="status-label status-label-spaced">REMOTE MANIFEST</div>
+            <div className="status-value status-value-mono">
               http://localhost:3001/assets/remoteEntry.js
             </div>
           </div>

@@ -67,8 +67,13 @@ Acesse no navegador:
 2. **Exposição de Módulos:** Criação e exposição do componente interativo `GeoViewer` com hooks internos de estado e cálculo topográfico.
 3. **O Experimento do Singleton:** Análise e resolução do erro clássico `Invalid Hook Call` / `TypeError: Cannot read properties of null (reading 'useState')` ao sincronizar `singleton: true` e `requiredVersion: '^18.3.1'`.
    - Consulte o relatório técnico completo em [docs/EXPERIMENTO_SINGLETON.md](docs/EXPERIMENTO_SINGLETON.md).
-4. **Resiliência com ErrorBoundary e Suspense:** Tratamento de quedas de rede e fallbacks elegantes quando o Remote fica offline.
-5. **Comunicação Desacoplada:** Sincronização via `URLSearchParams` e eventos nativos `CustomEvent` sem acoplamento de estado global.
+4. **Resiliência com ErrorBoundary, Suspense e o Desafio do Module Map:**
+   - Tratamento de quedas de rede e fallbacks elegantes quando o Remote fica offline.
+   - Diagnóstico do bloqueio do **Module Map nativo do navegador** (especificação ECMAScript / HTML5) ao tentar reconectar URLs com falha e padrões de recuperação com Dynamic Remotes (`externalType: 'promise'`).
+   - Consulte o relatório técnico completo em [docs/RESILIENCIA_ERROR_BOUNDARY.md](docs/RESILIENCIA_ERROR_BOUNDARY.md).
+5. **Comunicação Desacoplada entre Micro Frontends:**
+   - Sincronização de estado via `URLSearchParams` (estado na URL como fonte da verdade) e disparo de eventos pontuais via `CustomEvent` nativo do DOM, sem compartilhar Context API ou stores globais acopladas.
+   - Consulte o relatório técnico completo em [docs/EXPERIMENTO_COMUNICACAO.md](docs/EXPERIMENTO_COMUNICACAO.md).
 
 ---
 

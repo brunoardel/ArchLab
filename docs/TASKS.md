@@ -19,6 +19,6 @@
   - Envolver o componente remoto com `ErrorBoundary` e `Suspense`.
   - Testar desligando o Remote e verificar se o fallback amigável aparece sem derrubar o Host.
 
-- [ ] **Tarefa 5: Comunicação Desacoplada**
+- [x] **Tarefa 5: Comunicação Desacoplada**
   - Fazer o Remote ler o ID do terreno ativo via `URLSearchParams`.
   - Implementar emissão e escuta de eventos nativos com `window.dispatchEvent` / `window.addEventListener`.
