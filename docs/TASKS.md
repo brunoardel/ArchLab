@@ -13,12 +13,12 @@
   - Registrar a quebra de hooks no console.
   - Corrigir adicionando `singleton: true` e `requiredVersion` para React e ReactDOM.
 
-- [ ] **Tarefa 4: Resiliência com ErrorBoundary e Suspense**
+- [x] **Tarefa 4: Resiliência com ErrorBoundary e Suspense**
   - Importar o `GeoViewer` no Host usando `React.lazy`.
   - Criar um componente `ErrorBoundary` reutilizável.
   - Envolver o componente remoto com `ErrorBoundary` e `Suspense`.
   - Testar desligando o Remote e verificar se o fallback amigável aparece sem derrubar o Host.
 
-- [ ] **Tarefa 5: Comunicação Desacoplada**
+- [x] **Tarefa 5: Comunicação Desacoplada**
   - Fazer o Remote ler o ID do terreno ativo via `URLSearchParams`.
   - Implementar emissão e escuta de eventos nativos com `window.dispatchEvent` / `window.addEventListener`.

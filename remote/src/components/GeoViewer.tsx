@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { TerrenoRecalculadoDetail, TerrenoAlteradoDetail } from '../types/events';
 import './GeoViewer.css';
 
 export interface TerrainCoordinate {
@@ -12,6 +13,7 @@ export interface TerrainCoordinate {
 export interface TerrainMetadata {
   terrenoId: string;
   name: string;
+  zoneamento: string;
   areaM2: number;
   averageSlope: string;
   maxElevation: number;
@@ -19,45 +21,136 @@ export interface TerrainMetadata {
   coordinates: TerrainCoordinate[];
 }
 
-const MOCK_TERRAIN: TerrainMetadata = {
-  terrenoId: 'TR-7082',
-  name: 'Gleba Alpha — Vale Verde',
-  areaM2: 14850,
-  averageSlope: '12.4%',
-  maxElevation: 842.5,
-  minElevation: 815.0,
-  coordinates: [
-    { id: 1, label: 'V1', x: 60, y: 50, elevation: 818.2 },
-    { id: 2, label: 'V2', x: 190, y: 40, elevation: 825.4 },
-    { id: 3, label: 'V3', x: 340, y: 70, elevation: 839.1 },
-    { id: 4, label: 'V4', x: 420, y: 160, elevation: 842.5 },
-    { id: 5, label: 'V5', x: 310, y: 230, elevation: 831.0 },
-    { id: 6, label: 'V6', x: 150, y: 220, elevation: 822.8 },
-    { id: 7, label: 'V7', x: 70, y: 160, elevation: 815.0 },
-  ],
+const MOCK_TERRAINS: Record<string, TerrainMetadata> = {
+  '101': {
+    terrenoId: '101',
+    name: 'Gleba Alpha — Vale Verde',
+    zoneamento: 'ZEU (Zona de Estruturação Urbana)',
+    areaM2: 14850,
+    averageSlope: '12.4%',
+    maxElevation: 842.5,
+    minElevation: 815.0,
+    coordinates: [
+      { id: 1, label: 'V1', x: 60, y: 50, elevation: 818.2 },
+      { id: 2, label: 'V2', x: 190, y: 40, elevation: 825.4 },
+      { id: 3, label: 'V3', x: 340, y: 70, elevation: 839.1 },
+      { id: 4, label: 'V4', x: 420, y: 160, elevation: 842.5 },
+      { id: 5, label: 'V5', x: 310, y: 230, elevation: 831.0 },
+      { id: 6, label: 'V6', x: 150, y: 220, elevation: 822.8 },
+      { id: 7, label: 'V7', x: 70, y: 160, elevation: 815.0 },
+    ],
+  },
+  '202': {
+    terrenoId: '202',
+    name: 'Lote Beta — Planalto Sul',
+    zoneamento: 'ZPR (Zona Predominantemente Residencial)',
+    areaM2: 28400,
+    averageSlope: '6.8%',
+    maxElevation: 795.0,
+    minElevation: 780.2,
+    coordinates: [
+      { id: 1, label: 'P1', x: 80, y: 45, elevation: 782.0 },
+      { id: 2, label: 'P2', x: 260, y: 35, elevation: 788.5 },
+      { id: 3, label: 'P3', x: 430, y: 75, elevation: 795.0 },
+      { id: 4, label: 'P4', x: 400, y: 215, elevation: 791.4 },
+      { id: 5, label: 'P5', x: 210, y: 245, elevation: 785.1 },
+      { id: 6, label: 'P6', x: 50, y: 185, elevation: 780.2 },
+    ],
+  },
+  '303': {
+    terrenoId: '303',
+    name: 'Reserva Gamma — Encosta Leste',
+    zoneamento: 'ZEP (Zona Especial de Proteção Ambiental)',
+    areaM2: 42100,
+    averageSlope: '24.1%',
+    maxElevation: 915.8,
+    minElevation: 840.0,
+    coordinates: [
+      { id: 1, label: 'G1', x: 90, y: 60, elevation: 845.0 },
+      { id: 2, label: 'G2', x: 230, y: 35, elevation: 875.2 },
+      { id: 3, label: 'G3', x: 440, y: 65, elevation: 915.8 },
+      { id: 4, label: 'G4', x: 380, y: 195, elevation: 890.3 },
+      { id: 5, label: 'G5', x: 290, y: 250, elevation: 865.0 },
+      { id: 6, label: 'G6', x: 130, y: 215, elevation: 840.0 },
+      { id: 7, label: 'G7', x: 50, y: 135, elevation: 852.1 },
+    ],
+  },
 };
 
+/**
+ * Lê o ID do terreno diretamente da URL (window.location.search) usando URLSearchParams.
+ * Demonstra o padrão de URL como fonte única da verdade (Single Source of Truth).
+ */
+function getTerrenoIdFromUrl(): string {
+  if (typeof window === 'undefined') return '101';
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('terrenoId');
+  if (id && MOCK_TERRAINS[id]) {
+    return id;
+  }
+  return '101';
+}
+
 export default function GeoViewer() {
-  // Hooks internos do React (useState e useEffect conforme RF01)
-  const [terrain, setTerrain] = useState<TerrainMetadata | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [selectedPoint, setSelectedPoint] = useState<TerrainCoordinate | null>(null);
+  // Estado local gerenciado com hooks conforme RF01
+  const [activeTerrenoId, setActiveTerrenoId] = useState<string>(() => getTerrenoIdFromUrl());
+  const [selectedPointId, setSelectedPointId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'contours' | 'mesh' | 'points'>('contours');
-  const [refreshCount, setRefreshCount] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Efeito simulando o carregamento assíncrono de telemetria / coordenadas LiDAR
+  // Terreno derivado diretamente da fonte da verdade (activeTerrenoId / URL)
+  const terrain = MOCK_TERRAINS[activeTerrenoId] || MOCK_TERRAINS['101'];
+  const selectedPoint =
+    terrain.coordinates.find((c) => c.id === selectedPointId) || terrain.coordinates[0];
+
+  // Estado para armazenar o último evento de recálculo recebido via CustomEvent
+  const [recalcEvent, setRecalcEvent] = useState<TerrenoRecalculadoDetail | null>(null);
+  const [showRecalcBanner, setShowRecalcBanner] = useState<boolean>(false);
+
+  // Efeito 1: Sincronização da URL (Query Params) e evento nativo de alteração de terreno
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setTerrain(MOCK_TERRAIN);
-      setSelectedPoint(MOCK_TERRAIN.coordinates[0]);
-      setLoading(false);
-    }, 600);
+    const syncFromUrl = () => {
+      const id = getTerrenoIdFromUrl();
+      setActiveTerrenoId(id);
+    };
 
-    return () => clearTimeout(timer);
-  }, [refreshCount]);
+    const handleTerrenoAlterado = (e: Event) => {
+      const customEvent = e as CustomEvent<TerrenoAlteradoDetail>;
+      if (customEvent.detail?.terrenoId && MOCK_TERRAINS[customEvent.detail.terrenoId]) {
+        setActiveTerrenoId(customEvent.detail.terrenoId);
+      } else {
+        syncFromUrl();
+      }
+    };
 
-  if (loading || !terrain) {
+    window.addEventListener('terreno:alterado', handleTerrenoAlterado);
+    window.addEventListener('popstate', syncFromUrl);
+
+    return () => {
+      window.removeEventListener('terreno:alterado', handleTerrenoAlterado);
+      window.removeEventListener('popstate', syncFromUrl);
+    };
+  }, []);
+
+  // Efeito 2: Escuta de CustomEvent 'terreno:recalculado' com limpeza obrigatória
+  useEffect(() => {
+    const handleRecalculado = (e: Event) => {
+      const customEvent = e as CustomEvent<TerrenoRecalculadoDetail>;
+      if (customEvent.detail) {
+        setRecalcEvent(customEvent.detail);
+        setShowRecalcBanner(true);
+      }
+    };
+
+    window.addEventListener('terreno:recalculado', handleRecalculado);
+
+    // Limpeza obrigatória para evitar vazamento de memória (memory leaks)
+    return () => {
+      window.removeEventListener('terreno:recalculado', handleRecalculado);
+    };
+  }, []);
+
+  if (isRefreshing) {
     return (
       <div className="geo-viewer-root">
         <div className="geo-loading-state">
@@ -77,6 +170,30 @@ export default function GeoViewer() {
 
   return (
     <div className="geo-viewer-root">
+      {/* Banner de Notificação de CustomEvent: terreno:recalculado */}
+      {showRecalcBanner && recalcEvent && (
+        <div className="geo-recalc-banner" role="status" aria-live="polite">
+          <div className="geo-recalc-icon">⚡</div>
+          <div className="geo-recalc-info">
+            <div className="geo-recalc-header-row">
+              <span className="geo-recalc-badge">CustomEvent: terreno:recalculado</span>
+              <span className="geo-recalc-version">Versão: {recalcEvent.versao}</span>
+            </div>
+            <div className="geo-recalc-time">
+              Parâmetros recalculados às {new Date(recalcEvent.timestamp).toLocaleTimeString('pt-BR')} (Timestamp: {recalcEvent.timestamp})
+            </div>
+          </div>
+          <button
+            type="button"
+            className="geo-recalc-close"
+            onClick={() => setShowRecalcBanner(false)}
+            title="Fechar notificação de recálculo"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Cabeçalho do Componente */}
       <div className="geo-viewer-header">
         <div className="geo-viewer-title-area">
@@ -84,12 +201,12 @@ export default function GeoViewer() {
           <div>
             <h2 className="geo-viewer-title">{terrain.name}</h2>
             <div className="geo-viewer-subtitle">
-              Identificador Topográfico: <strong>{terrain.terrenoId}</strong> • Micro Frontend Remote
+              ID na URL: <span className="geo-url-tag">?terrenoId={terrain.terrenoId}</span> • Micro Frontend Remote
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="geo-badge-live">
             <span className="geo-badge-pulse-dot"></span>
             GeoViewer Ativo (Remote)
@@ -97,7 +214,10 @@ export default function GeoViewer() {
           <button
             type="button"
             className="geo-ctrl-btn"
-            onClick={() => setRefreshCount((c) => c + 1)}
+            onClick={() => {
+              setIsRefreshing(true);
+              setTimeout(() => setIsRefreshing(false), 400);
+            }}
             title="Recarregar dados com hooks"
           >
             🔄 Atualizar
@@ -105,11 +225,19 @@ export default function GeoViewer() {
         </div>
       </div>
 
-      {/* Grid de Métricas do Terreno */}
+      {/* Grid de Métricas do Terreno com Zoneamento */}
       <div className="geo-stats-grid">
+        <div className="geo-stat-chip">
+          <div className="geo-stat-label">Terreno Ativo (URL)</div>
+          <div className="geo-stat-value" style={{ color: '#38bdf8' }}>ID: {terrain.terrenoId}</div>
+        </div>
         <div className="geo-stat-chip">
           <div className="geo-stat-label">Área Projetada</div>
           <div className="geo-stat-value">{terrain.areaM2.toLocaleString('pt-BR')} m²</div>
+        </div>
+        <div className="geo-stat-chip" style={{ gridColumn: 'span 2' }}>
+          <div className="geo-stat-label">Zoneamento Municipal</div>
+          <div className="geo-stat-value" style={{ color: '#f59e0b', fontSize: '13px' }}>{terrain.zoneamento}</div>
         </div>
         <div className="geo-stat-chip">
           <div className="geo-stat-label">Declividade Média</div>
@@ -215,7 +343,7 @@ export default function GeoViewer() {
             return (
               <g
                 key={coord.id}
-                onClick={() => setSelectedPoint(coord)}
+                onClick={() => setSelectedPointId(coord.id)}
                 style={{ cursor: 'pointer' }}
               >
                 {isSelected && (

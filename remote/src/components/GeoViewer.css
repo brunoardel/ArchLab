@@ -238,3 +238,106 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Tag de URL */
+.geo-url-tag {
+  font-family: var(--gv-mono);
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--gv-cyan);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-weight: 600;
+}
+
+/* Banner de Notificação de CustomEvent */
+.geo-recalc-banner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(16, 185, 129, 0.15));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: slide-in 0.3s ease-out;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.geo-recalc-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.geo-recalc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.geo-recalc-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+.geo-recalc-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--gv-mono);
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.geo-recalc-version {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--gv-mono);
+  color: #34d399;
+}
+
+.geo-recalc-time {
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.geo-recalc-close {
+  background: transparent;
+  border: none;
+  color: var(--gv-text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.geo-recalc-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
